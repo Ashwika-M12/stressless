@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calm Anchor</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f5f0eb; color: #2d2d2d; min-height: 100vh; }
+  nav { display: flex; background: #fff; border-bottom: 1px solid #e0d8d0; position: sticky; top: 0; z-index: 10; }
+  nav button { flex: 1; padding: 14px 4px; border: none; background: none; cursor: pointer; font-size: 11px; color: #888; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: color .2s; }
+  nav button.active { color: #4a7c59; border-bottom: 2px solid #4a7c59; }
+  nav button svg { width: 20px; height: 20px; }
+  .page { display: none; padding: 16px; max-width: 520px; margin: 0 auto; }
+  .page.active { display: block; }
+  .card { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  .card h3 { font-size: 13px; color: #888; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+  .app-header { text-align: center; padding: 20px 0 10px; }
+  .app-header h1 { font-size: 24px; font-weight: 600; color: #2d5a3d; }
+  .app-header p { font-size: 13px; color: #888; margin-top: 4px; }
+  .quote-card { background: linear-gradient(135deg, #4a7c59, #2d5a3d); color: #fff; border-radius: 16px; padding: 20px; margin-bottom: 14px; text-align: center; }
+  .quote-card p { font-size: 15px; line-height: 1.6; font-style: italic; }
+  .quote-card span { font-size: 12px; opacity: .7; display: block; margin-top: 8px; }
+  .streak-card { display: flex; align-items: center; gap: 14px; background: #fff8f0; border: 1px solid #f0d8b8; }
+  .streak-num { font-size: 36px; font-weight: 700; color: #e07a1a; }
+  .streak-info h4 { font-size: 15px; font-weight: 600; }
+  .streak-info p { font-size: 12px; color: #888; margin-top: 2px; }
+  .mood-row { display: flex; justify-content: space-between; gap: 8px; }
+  .mood-btn { flex: 1; padding: 10px 4px; border-radius: 12px; border: 2px solid #e8e0d8; background: #fff; cursor: pointer; text-align: center; font-size: 11px; color: #666; transition: all .2s; }
+  .mood-btn:hover { border-color: #4a7c59; color: #4a7c59; }
+  .mood-btn.selected { border-color: #4a7c59; background: #edf4ef; color: #2d5a3d; font-weight: 600; }
+  .mood-emoji { font-size: 22px; display: block; margin-bottom: 4px; }
+  .calm-btn { width: 100%; padding: 16px; background: #4a7c59; color: #fff; border: none; border-radius: 14px; font-size: 16px; font-weight: 600; cursor: pointer; margin-top: 4px; transition: background .2s; }
+  .calm-btn:hover { background: #2d5a3d; }
+  .stimuli-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stimuli-item { border: 2px solid #e8e0d8; border-radius: 12px; padding: 12px; cursor: pointer; text-align: center; transition: all .2s; background: #fff; }
+  .stimuli-item:hover { border-color: #4a7c59; }
+  .stimuli-item.selected { border-color: #4a7c59; background: #edf4ef; }
+  .stimuli-item .si-icon { font-size: 28px; margin-bottom: 6px; }
+  .stimuli-item .si-name { font-size: 12px; font-weight: 600; }
+  .stimuli-item .si-sub { font-size: 11px; color: #888; margin-top: 2px; }
+  .color-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+  .color-swatch { width: 40px; height: 40px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: all .2s; }
+  .color-swatch.selected { border-color: #2d2d2d; transform: scale(1.15); }
+  .player-overlay { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; flex-direction: column; }
+  .player-overlay.open { display: flex; }
+  .breathe-circle { width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,.25); border: 3px solid rgba(255,255,255,.6); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; font-weight: 500; transition: transform 4s ease-in-out; }
+  .breathe-circle.inhale { transform: scale(1.4); }
+  .player-text { color: #fff; text-align: center; margin-top: 16px; }
+  .player-text h2 { font-size: 20px; font-weight: 600; }
+  .player-text p { font-size: 13px; opacity: .8; margin-top: 6px; }
+  .player-timer { font-size: 40px; font-weight: 300; color: #fff; margin: 20px 0; }
+  .player-controls { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+  .player-btn { padding: 10px 24px; border-radius: 30px; border: 2px solid rgba(255,255,255,.6); background: rgba(255,255,255,.15); color: #fff; cursor: pointer; font-size: 14px; font-weight: 500; transition: background .2s; }
+  .player-btn:hover { background: rgba(255,255,255,.3); }
+  .vol-row { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+  .vol-row label { color: rgba(255,255,255,.8); font-size: 13px; }
+  .vol-row input { flex: 1; accent-color: #fff; }
+  .player-rate { margin-top: 20px; text-align: center; display: none; }
+  .player-rate p { color: #fff; font-size: 14px; margin-bottom: 10px; }
+  .rate-stars { display: flex; gap: 10px; justify-content: center; }
+  .rate-stars button { background: rgba(255,255,255,.2); border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 20px; cursor: pointer; transition: background .2s; }
+  .rate-stars button:hover { background: rgba(255,255,255,.4); }
+  .insight-stat { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .stat-box { background: #fff; border-radius: 12px; padding: 14px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+  .stat-box .s-val { font-size: 28px; font-weight: 700; color: #4a7c59; }
+  .stat-box .s-label { font-size: 12px; color: #888; margin-top: 4px; }
+  .bar-chart { display: flex; align-items: flex-end; gap: 8px; height: 100px; margin-top: 10px; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+  .bar { width: 100%; background: #4a7c59; border-radius: 4px 4px 0 0; min-height: 4px; }
+  .top-stimuli { display: flex; flex-direction: column; gap: 8px; }
+  .ts-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: #f9f5f0; border-radius: 10px; }
+  .ts-item .ts-icon { font-size: 22px; }
+  .ts-item .ts-name { font-size: 13px; font-weight: 600; flex: 1; }
+  .ts-item .ts-score { font-size: 12px; color: #4a7c59; font-weight: 600; }
+  .progress-bar { height: 6px; background: #e8e0d8; border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #4a7c59; border-radius: 3px; }
+  .ab-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .ab-card { border: 2px solid #e8e0d8; border-radius: 14px; padding: 14px; text-align: center; background: #fff; cursor: pointer; transition: all .2s; }
+  .ab-card.winner { border-color: #4a7c59; background: #edf4ef; }
+  .ab-card .ab-icon { font-size: 40px; margin-bottom: 8px; }
+  .ab-card .ab-name { font-size: 13px; font-weight: 600; }
+  .ab-card .ab-rating button { background: none; border: 1px solid #ddd; border-radius: 8px; padding: 4px 8px; margin: 2px; cursor: pointer; font-size: 13px; transition: all .2s; }
+  .ab-card .ab-rating button.rated { background: #4a7c59; color: #fff; border-color: #4a7c59; }
+  .ab-result { text-align: center; padding: 14px; background: #edf4ef; border-radius: 12px; margin-top: 10px; display: none; }
+  .ab-result h4 { font-size: 16px; color: #2d5a3d; font-weight: 600; }
+  .ab-result p { font-size: 13px; color: #555; margin-top: 4px; }
+  select, input[type=text] { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 14px; margin-top: 4px; background: #fff; }
+  .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .tag { background: #f0ebe4; color: #555; border-radius: 20px; padding: 4px 12px; font-size: 12px; font-weight: 500; cursor: pointer; border: 1px solid #ddd; transition: all .2s; }
+  .save-btn { width: 100%; padding: 12px; background: #4a7c59; color: #fff; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 10px; }
+  .save-btn:hover { background: #2d5a3d; }
+
+  /* AUDIO UPLOAD */
+  .audio-slot { display: flex; align-items: center; gap: 10px; padding: 10px; border: 1px dashed #ccc; border-radius: 10px; margin-bottom: 8px; background: #fafafa; }
+  .audio-slot .slot-icon { font-size: 22px; }
+  .audio-slot .slot-name { font-size: 13px; font-weight: 600; flex: 1; }
+  .audio-slot .slot-status { font-size: 11px; color: #888; }
+  .audio-slot .slot-status.loaded { color: #4a7c59; }
+  .upload-label { font-size: 12px; padding: 6px 12px; border: 1px solid #4a7c59; color: #4a7c59; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+  .upload-label:hover { background: #edf4ef; }
+  input[type=file] { display: none; }
+  .clear-btn { font-size: 11px; padding: 4px 8px; border: 1px solid #e88; color: #c44; border-radius: 6px; cursor: pointer; background: none; }
+</style>
+</head>
+<body>
+
+<div class="player-overlay" id="playerOverlay">
+  <div class="breathe-circle" id="breatheCircle">Breathe</div>
+  <div class="player-timer" id="playerTimer">5:00</div>
+  <div class="player-text">
+    <h2 id="playerTitle">Ocean Waves</h2>
+    <p id="breatheLabel">Inhale slowly...</p>
+  </div>
+  <div class="vol-row">
+    <label>🔈</label>
+    <input type="range" min="0" max="1" step="0.05" value="0.7" id="volSlider" oninput="setVolume(this.value)">
+    <label>🔊</label>
+  </div>
+  <div class="player-controls">
+    <button class="player-btn" id="playerPause">Pause</button>
+    <button class="player-btn" onclick="endSession()">End Session</button>
+  </div>
+  <div class="player-rate" id="playerRate">
+    <p>How calm do you feel now?</p>
+    <div class="rate-stars">
+      <button onclick="rateSession(1)">😟</button>
+      <button onclick="rateSession(2)">😐</button>
+      <button onclick="rateSession(3)">🙂</button>
+      <button onclick="rateSession(4)">😌</button>
+      <button onclick="rateSession(5)">😊</button>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <button class="active" onclick="showPage('home',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home
+  </button>
+  <button onclick="showPage('kit',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>Calm Kit
+  </button>
+  <button onclick="showPage('tester',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Test
+  </button>
+  <button onclick="showPage('insights',this)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>Insights
+  </button>
+</nav>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="app-header"><h1>🌿 Calm Anchor</h1><p>Your personal stress relief companion</p></div>
+  <div class="quote-card"><p id="quoteText">"Within you, there is a stillness and a sanctuary to which you can retreat at any time."</p><span id="quoteAuthor">— Hermann Hesse</span></div>
+  <div class="card streak-card">
+    <div class="streak-num" id="streakNum">0</div>
+    <div class="streak-info"><h4>Day Streak 🔥</h4><p id="streakSub">Start your first session today!</p></div>
+  </div>
+  <div class="card">
+    <h3>How stressed are you right now?</h3>
+    <div class="mood-row">
+      <button class="mood-btn" onclick="selectMood(1,this)"><span class="mood-emoji">😌</span>Calm</button>
+      <button class="mood-btn" onclick="selectMood(2,this)"><span class="mood-emoji">🙂</span>Mild</button>
+      <button class="mood-btn" onclick="selectMood(3,this)"><span class="mood-emoji">😐</span>Moderate</button>
+      <button class="mood-btn" onclick="selectMood(4,this)"><span class="mood-emoji">😟</span>High</button>
+      <button class="mood-btn" onclick="selectMood(5,this)"><span class="mood-emoji">😰</span>Very High</button>
+    </div>
+  </div>
+  <button class="calm-btn" onclick="startSession()">🌊 Calm Me Now</button>
+  <div class="card" style="margin-top:14px;"><h3>Recent Sessions</h3><div id="recentSessions" style="font-size:13px;color:#888;">No sessions yet. Start your first one!</div></div>
+</div>
+
+<!-- CALM KIT -->
+<div class="page" id="page-kit">
+  <div class="app-header"><h1>🎨 Your Calm Kit</h1><p>Customize what helps you relax</p></div>
+
+  <div class="card">
+    <h3>🌿 Nature Scene</h3>
+    <div class="stimuli-grid" id="natureGrid">
+      <div class="stimuli-item selected" data-val="Ocean Waves" onclick="selectStimuli(this,'nature')"><div class="si-icon">🌊</div><div class="si-name">Ocean Waves</div><div class="si-sub">Coastal calm</div></div>
+      <div class="stimuli-item" data-val="Forest Path" onclick="selectStimuli(this,'nature')"><div class="si-icon">🌲</div><div class="si-name">Forest Path</div><div class="si-sub">Woodland peace</div></div>
+      <div class="stimuli-item" data-val="Mountain View" onclick="selectStimuli(this,'nature')"><div class="si-icon">⛰️</div><div class="si-name">Mountain View</div><div class="si-sub">Open horizon</div></div>
+      <div class="stimuli-item" data-val="Gentle Rain" onclick="selectStimuli(this,'nature')"><div class="si-icon">🌧️</div><div class="si-name">Gentle Rain</div><div class="si-sub">Cozy quiet</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎵 Sound & Music</h3>
+    <p style="font-size:12px;color:#888;margin-bottom:10px;">Choose a built-in sound or upload your own MP3/audio file for any slot.</p>
+    <div class="stimuli-grid" id="soundGrid">
+      <div class="stimuli-item selected" data-val="Rain Sounds" onclick="selectStimuli(this,'sound')"><div class="si-icon">🌧️</div><div class="si-name">Rain Sounds</div><div class="si-sub">Built-in</div></div>
+      <div class="stimuli-item" data-val="Ocean Waves" onclick="selectStimuli(this,'sound')"><div class="si-icon">🌊</div><div class="si-name">Ocean Waves</div><div class="si-sub">Built-in</div></div>
+      <div class="stimuli-item" data-val="Forest Birds" onclick="selectStimuli(this,'sound')"><div class="si-icon">🐦</div><div class="si-name">Forest Birds</div><div class="si-sub">Built-in</div></div>
+      <div class="stimuli-item" data-val="Deep Hum" onclick="selectStimuli(this,'sound')"><div class="si-icon">🎵</div><div class="si-name">Soft Drone</div><div class="si-sub">Built-in</div></div>
+    </div>
+
+    <div style="margin-top:14px;">
+      <div style="font-size:13px;font-weight:600;color:#555;margin-bottom:8px;">Upload Your Own Sounds</div>
+      <div id="uploadSlots"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>🎨 Calming Color</h3>
+    <div class="color-row" id="colorRow">
+      <div class="color-swatch selected" style="background:#5b9bd5;" data-color="#1a3a5c" data-name="Ocean Blue" onclick="selectColor(this)" title="Ocean Blue"></div>
+      <div class="color-swatch" style="background:#4a7c59;" data-color="#1a3d2b" data-name="Forest Green" onclick="selectColor(this)" title="Forest Green"></div>
+      <div class="color-swatch" style="background:#9b7bb5;" data-color="#3d2052" data-name="Soft Lavender" onclick="selectColor(this)" title="Soft Lavender"></div>
+      <div class="color-swatch" style="background:#c49a6c;" data-color="#5a3a10" data-name="Warm Sand" onclick="selectColor(this)" title="Warm Sand"></div>
+      <div class="color-swatch" style="background:#e8a0a0;" data-color="#7a1a1a" data-name="Blush Rose" onclick="selectColor(this)" title="Blush Rose"></div>
+      <div class="color-swatch" style="background:#7ec8c8;" data-color="#0d3d3d" data-name="Aqua Mist" onclick="selectColor(this)" title="Aqua Mist"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>⏱️ Session Duration</h3>
+    <select id="durationSelect">
+      <option value="120">2 minutes</option>
+      <option value="300" selected>5 minutes</option>
+      <option value="600">10 minutes</option>
+      <option value="900">15 minutes</option>
+    </select>
+  </div>
+
+  <button class="save-btn" onclick="saveKit()">✓ Save My Calm Kit</button>
+</div>
+
+<!-- TESTER -->
+<div class="page" id="page-tester">
+  <div class="app-header"><h1>🔬 Stimuli Tester</h1><p>Discover what works best for you</p></div>
+  <div class="card">
+    <h3>A/B Comparison</h3>
+    <p style="font-size:13px;color:#888;margin-bottom:12px;">Rate both stimuli to see which calms you more</p>
+    <div class="ab-container">
+      <div class="ab-card" id="abA"><div class="ab-icon" id="abAIcon">🌊</div><div class="ab-name" id="abAName">Ocean Waves</div><div class="ab-rating" style="margin-top:10px;"><div style="font-size:11px;color:#888;margin-bottom:4px;">Rate calm level:</div><button onclick="rateAB('A',1,this)">1</button><button onclick="rateAB('A',2,this)">2</button><button onclick="rateAB('A',3,this)">3</button><button onclick="rateAB('A',4,this)">4</button><button onclick="rateAB('A',5,this)">5</button></div></div>
+      <div class="ab-card" id="abB"><div class="ab-icon" id="abBIcon">🌲</div><div class="ab-name" id="abBName">Forest Path</div><div class="ab-rating" style="margin-top:10px;"><div style="font-size:11px;color:#888;margin-bottom:4px;">Rate calm level:</div><button onclick="rateAB('B',1,this)">1</button><button onclick="rateAB('B',2,this)">2</button><button onclick="rateAB('B',3,this)">3</button><button onclick="rateAB('B',4,this)">4</button><button onclick="rateAB('B',5,this)">5</button></div></div>
+    </div>
+    <div class="ab-result" id="abResult"><h4 id="abResultTitle"></h4><p id="abResultText"></p></div>
+    <button class="save-btn" style="margin-top:12px;" onclick="newABTest()">↺ Try New Pair</button>
+  </div>
+  <div class="card"><h3>Past Test Results</h3><div id="pastTests" style="font-size:13px;color:#888;">No tests completed yet.</div></div>
+</div>
+
+<!-- INSIGHTS -->
+<div class="page" id="page-insights">
+  <div class="app-header"><h1>📊 Your Insights</h1><p>Track your calm journey</p></div>
+  <div class="insight-stat">
+    <div class="stat-box"><div class="s-val" id="totalSessions">0</div><div class="s-label">Sessions</div></div>
+    <div class="stat-box"><div class="s-val" id="avgMood">—</div><div class="s-label">Avg Calm Rating</div></div>
+    <div class="stat-box"><div class="s-val" id="streakInsight">0</div><div class="s-label">Day Streak</div></div>
+    <div class="stat-box"><div class="s-val" id="totalMinutes">0</div><div class="s-label">Minutes Calmed</div></div>
+  </div>
+  <div class="card"><h3>Stress Level (Last 7 Days)</h3><div class="bar-chart" id="moodChart"></div><div style="display:flex;justify-content:space-between;margin-top:4px;" id="moodChartLabels"></div></div>
+  <div class="card"><h3>Top Stimuli</h3><div class="top-stimuli" id="topStimuli"><div style="font-size:13px;color:#888;">Complete sessions to see your top stimuli.</div></div></div>
+</div>
+
+<script>
+// ── QUOTES ──
+const QUOTES = [
+  {text:"Within you, there is a stillness and a sanctuary to which you can retreat at any time.", author:"Hermann Hesse"},
+  {text:"Breathe. Let go. And remind yourself that this very moment is the only one you know you have for sure.", author:"Oprah Winfrey"},
+  {text:"You don't have to control your thoughts. You just have to stop letting them control you.", author:"Dan Millman"},
+  {text:"Almost everything will work again if you unplug it for a few minutes, including you.", author:"Anne Lamott"},
+  {text:"Peace is the result of retraining your mind to process life as it is, rather than as you think it should be.", author:"Wayne Dyer"},
+  {text:"Calm mind brings inner strength and self-confidence, so that is very important for good health.", author:"Dalai Lama"},
+  {text:"The present moment is the only moment available to us, and it is the door to all moments.", author:"Thich Nhat Hanh"},
+];
+
+// ── BUILT-IN AUDIO (Web Audio API — generative ambient sounds) ──
+let audioCtx = null;
+let activeNodes = [];
+
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function stopAllAudio() {
+  activeNodes.forEach(n => { try { n.stop(); } catch(e){} });
+  activeNodes = [];
+  if (customAudio) { customAudio.pause(); customAudio.currentTime = 0; }
+}
+
+function makeNoise(type, freq, gain, ctx, dest) {
+  const buf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+  const filt = ctx.createBiquadFilter(); filt.type = type; filt.frequency.value = freq;
+  const g = ctx.createGain(); g.gain.value = gain;
+  src.connect(filt); filt.connect(g); g.connect(dest);
+  src.start(); activeNodes.push(src);
+  return g;
+}
+
+function makeTone(freq, gainVal, ctx, dest) {
+  const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq;
+  const g = ctx.createGain(); g.gain.value = gainVal;
+  osc.connect(g); g.connect(dest); osc.start(); activeNodes.push(osc);
+  return g;
+}
+
+const masterGainRef = { node: null };
+
+function playBuiltIn(name) {
+  const ctx = getAudioCtx();
+  const master = ctx.createGain();
+  master.gain.value = currentVolume;
+  master.connect(ctx.destination);
+  masterGainRef.node = master;
+
+  if (name === 'Rain Sounds') {
+    makeNoise('lowpass', 800, 0.6, ctx, master);
+    makeNoise('bandpass', 200, 0.3, ctx, master);
+  } else if (name === 'Ocean Waves') {
+    const g = makeNoise('lowpass', 400, 0.5, ctx, master);
+    // LFO for wave rhythm
+    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.15;
+    const lfoG = ctx.createGain(); lfoG.gain.value = 0.3;
+    lfo.connect(lfoG); lfoG.connect(g.gain); lfo.start(); activeNodes.push(lfo);
+    makeNoise('highpass', 2000, 0.08, ctx, master);
+  } else if (name === 'Forest Birds') {
+    makeNoise('bandpass', 3000, 0.05, ctx, master);
+    // chirp tones
+    [880, 1100, 660, 1320].forEach((f, i) => {
+      setTimeout(() => {
+        if (!audioCtx) return;
+        const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+        const eg = ctx.createGain(); eg.gain.setValueAtTime(0, ctx.currentTime);
+        eg.gain.linearRampToValueAtTime(0.08, ctx.currentTime + 0.05);
+        eg.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+        o.connect(eg); eg.connect(master); o.start(); o.stop(ctx.currentTime + 0.35);
+        activeNodes.push(o);
+      }, i * 1800 + Math.random() * 600);
+    });
+    // repeat chirps every 7s
+    const chirpInterval = setInterval(() => {
+      if (!audioCtx || activeNodes.length === 0) { clearInterval(chirpInterval); return; }
+      [880, 1100, 660].forEach((f, i) => {
+        setTimeout(() => {
+          const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f + Math.random()*100;
+          const eg = ctx.createGain(); eg.gain.setValueAtTime(0, ctx.currentTime);
+          eg.gain.linearRampToValueAtTime(0.07, ctx.currentTime + 0.05);
+          eg.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.25);
+          o.connect(eg); eg.connect(master); o.start(); o.stop(ctx.currentTime + 0.3);
+        }, i * 200 + Math.random() * 400);
+      });
+    }, 7000);
+  } else if (name === 'Deep Hum') {
+    makeTone(60, 0.15, ctx, master);
+    makeTone(90, 0.08, ctx, master);
+    makeTone(120, 0.05, ctx, master);
+    makeNoise('lowpass', 150, 0.06, ctx, master);
+  }
+}
+
+// ── CUSTOM AUDIO (uploaded files) ──
+let customAudio = null;
+let uploadedSounds = {}; // name -> { url, label }
+
+function playCustom(url) {
+  customAudio = new Audio(url);
+  customAudio.loop = true;
+  customAudio.volume = currentVolume;
+  customAudio.play().catch(e => console.log('Audio play error:', e));
+}
+
+let currentVolume = 0.7;
+function setVolume(v) {
+  currentVolume = parseFloat(v);
+  if (masterGainRef.node) masterGainRef.node.gain.value = currentVolume;
+  if (customAudio) customAudio.volume = currentVolume;
+}
+
+// ── UPLOAD SLOTS ──
+const uploadSlotDefs = [
+  {key:'custom1', icon:'🎶', label:'Custom Sound 1'},
+  {key:'custom2', icon:'🎸', label:'Custom Sound 2'},
+  {key:'custom3', icon:'🎹', label:'Custom Sound 3'},
+];
+
+function renderUploadSlots() {
+  const container = document.getElementById('uploadSlots');
+  container.innerHTML = uploadSlotDefs.map(slot => {
+    const loaded = uploadedSounds[slot.key];
+    return `<div class="audio-slot" id="slot-${slot.key}">
+      <div class="slot-icon">${slot.icon}</div>
+      <div style="flex:1">
+        <div class="slot-name">${loaded ? loaded.label : slot.label}</div>
+        <div class="slot-status ${loaded ? 'loaded' : ''}">${loaded ? '✓ Loaded — tap to use below' : 'No file uploaded'}</div>
+      </div>
+      ${loaded ? `<button class="clear-btn" onclick="clearUpload('${slot.key}')">✕</button>` : ''}
+      <label class="upload-label" for="file-${slot.key}">
+        ${loaded ? 'Replace' : 'Upload'}
+        <input type="file" id="file-${slot.key}" accept="audio/*" onchange="handleUpload(event,'${slot.key}','${slot.label}')">
+      </label>
+    </div>`;
+  }).join('');
+  renderUploadSoundGrid();
+}
+
+function handleUpload(e, key, defaultLabel) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  uploadedSounds[key] = { url, label: file.name.replace(/\.[^.]+$/, '') };
+  renderUploadSlots();
+}
+
+function clearUpload(key) {
+  if (uploadedSounds[key]) URL.revokeObjectURL(uploadedSounds[key].url);
+  delete uploadedSounds[key];
+  renderUploadSlots();
+  // deselect if currently selected
+  if (state.selectedSound === key) state.selectedSound = 'Rain Sounds';
+}
+
+function renderUploadSoundGrid() {
+  // add uploaded sounds as selectable items in sound grid
+  const grid = document.getElementById('soundGrid');
+  // remove old upload items
+  grid.querySelectorAll('.upload-item').forEach(el => el.remove());
+  Object.entries(uploadedSounds).forEach(([key, sound]) => {
+    const div = document.createElement('div');
+    div.className = 'stimuli-item upload-item' + (state.selectedSound === key ? ' selected' : '');
+    div.dataset.val = key;
+    div.onclick = () => selectStimuli(div, 'sound');
+    div.innerHTML = `<div class="si-icon">🎧</div><div class="si-name">${sound.label}</div><div class="si-sub">Your upload</div>`;
+    grid.appendChild(div);
+  });
+}
+
+// ── STATE ──
+let state = {
+  streak:0, lastSessionDate:null, sessions:[], totalMinutes:0,
+  selectedNature:'Ocean Waves', selectedSound:'Rain Sounds',
+  selectedColor:'#1a3a5c', selectedColorName:'Ocean Blue',
+  sessionDuration:300, currentMood:3, abRatings:{A:null,B:null},
+  pastTests:[], stimuliScores:{}
+};
+
+function loadState() {
+  try { const s = localStorage.getItem('calmAnchorState2'); if(s) state = {...state,...JSON.parse(s)}; } catch(e){}
+}
+function saveState() {
+  try { localStorage.setItem('calmAnchorState2', JSON.stringify(state)); } catch(e){}
+}
+
+// ── NAV ──
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  btn.classList.add('active');
+  if (id==='insights') renderInsights();
+}
+
+function selectMood(val,btn) {
+  document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  state.currentMood = val;
+}
+
+function selectStimuli(el, type) {
+  el.closest('.stimuli-grid').querySelectorAll('.stimuli-item').forEach(i=>i.classList.remove('selected'));
+  el.classList.add('selected');
+  if (type==='nature') state.selectedNature = el.dataset.val;
+  if (type==='sound') state.selectedSound = el.dataset.val;
+  saveState();
+}
+
+function selectColor(el) {
+  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected'));
+  el.classList.add('selected');
+  state.selectedColor = el.dataset.color;
+  state.selectedColorName = el.dataset.name;
+  saveState();
+}
+
+function saveKit() {
+  state.sessionDuration = parseInt(document.getElementById('durationSelect').value);
+  saveState();
+  const btn = document.querySelector('.save-btn');
+  btn.textContent = '✓ Saved!';
+  setTimeout(()=>btn.textContent='✓ Save My Calm Kit', 1500);
+}
+
+// ── SESSION ──
+let sessionInterval, breatheTimeout, sessionSeconds, breathePhase=0, paused=false;
+const breatheSteps = [{label:'Inhale...', dur:4000},{label:'Hold...', dur:2000},{label:'Exhale...', dur:6000}];
+
+function startSession() {
+  const overlay = document.getElementById('playerOverlay');
+  overlay.style.background = state.selectedColor || '#1a3a5c';
+  document.getElementById('playerTitle').textContent = state.selectedNature + ' · ' + (uploadedSounds[state.selectedSound]?.label || state.selectedSound);
+  document.getElementById('playerRate').style.display = 'none';
+  document.getElementById('playerPause').textContent = 'Pause';
+  document.getElementById('volSlider').value = currentVolume;
+  sessionSeconds = state.sessionDuration || 300;
+  paused = false; breathePhase = 0;
+  updateTimerDisplay();
+  overlay.classList.add('open');
+  // play audio
+  stopAllAudio();
+  if (uploadedSounds[state.selectedSound]) {
+    playCustom(uploadedSounds[state.selectedSound].url);
+  } else {
+    playBuiltIn(state.selectedSound);
+  }
+  runBreathe();
+  sessionInterval = setInterval(()=>{ sessionSeconds--; updateTimerDisplay(); if(sessionSeconds<=0) endSession(); }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m=Math.floor(sessionSeconds/60), s=sessionSeconds%60;
+  document.getElementById('playerTimer').textContent = m+':'+(s<10?'0':'')+s;
+}
+
+function runBreathe() {
+  const step = breatheSteps[breathePhase%3];
+  document.getElementById('breatheLabel').textContent = step.label;
+  const circle = document.getElementById('breatheCircle');
+  if (breathePhase%3===0) circle.classList.add('inhale'); else circle.classList.remove('inhale');
+  breathePhase++;
+  breatheTimeout = setTimeout(runBreathe, step.dur);
+}
+
+document.getElementById('playerPause').onclick = function() {
+  if (!paused) {
+    clearInterval(sessionInterval); clearTimeout(breatheTimeout);
+    stopAllAudio();
+    this.textContent='Resume'; paused=true;
+  } else {
+    if (uploadedSounds[state.selectedSound]) playCustom(uploadedSounds[state.selectedSound].url);
+    else playBuiltIn(state.selectedSound);
+    sessionInterval = setInterval(()=>{ sessionSeconds--; updateTimerDisplay(); if(sessionSeconds<=0) endSession(); }, 1000);
+    runBreathe(); this.textContent='Pause'; paused=false;
+  }
+};
+
+function endSession() {
+  clearInterval(sessionInterval); clearTimeout(breatheTimeout);
+  stopAllAudio();
+  document.getElementById('playerRate').style.display='block';
+  document.getElementById('playerTimer').textContent='Done!';
+  document.getElementById('breatheLabel').textContent='How do you feel?';
+}
+
+function rateSession(rating) {
+  const today = new Date().toDateString();
+  state.sessions.push({date:today, rating, nature:state.selectedNature, sound:state.selectedSound, mood:state.currentMood||3});
+  if (!state.stimuliScores[state.selectedNature]) state.stimuliScores[state.selectedNature]=[];
+  state.stimuliScores[state.selectedNature].push(rating);
+  if (state.lastSessionDate!==today) {
+    const yest=new Date(); yest.setDate(yest.getDate()-1);
+    state.streak = state.lastSessionDate===yest.toDateString() ? state.streak+1 : 1;
+    state.lastSessionDate=today;
+  }
+  state.totalMinutes = (state.totalMinutes||0) + Math.round((state.sessionDuration||300)/60);
+  saveState();
+  document.getElementById('playerOverlay').classList.remove('open');
+  renderHome();
+  const q = QUOTES[Math.floor(Math.random()*QUOTES.length)];
+  document.getElementById('quoteText').textContent = '"'+q.text+'"';
+  document.getElementById('quoteAuthor').textContent = '— '+q.author;
+}
+
+// ── A/B TESTER ──
+let abPairIndex=0;
+const abPairs=[
+  [{icon:"🌊",name:"Ocean Waves"},{icon:"🌲",name:"Forest Path"}],
+  [{icon:"🎵",name:"Deep Hum"},{icon:"🐦",name:"Forest Birds"}],
+  [{icon:"🌧️",name:"Rain Sounds"},{icon:"🌊",name:"Ocean Waves"}],
+  [{icon:"⛰️",name:"Mountain View"},{icon:"🌙",name:"Night Sky"}],
+];
+
+function loadABPair() {
+  const pair = abPairs[abPairIndex%abPairs.length];
+  document.getElementById('abAIcon').textContent=pair[0].icon;
+  document.getElementById('abAName').textContent=pair[0].name;
+  document.getElementById('abBIcon').textContent=pair[1].icon;
+  document.getElementById('abBName').textContent=pair[1].name;
+  state.abRatings={A:null,B:null};
+  document.getElementById('abResult').style.display='none';
+  document.querySelectorAll('.ab-card').forEach(c=>c.classList.remove('winner'));
+  document.querySelectorAll('.ab-card .ab-rating button').forEach(b=>b.classList.remove('rated'));
+}
+
+function rateAB(side,val,btn) {
+  document.getElementById('ab'+side).querySelectorAll('button').forEach(b=>b.classList.remove('rated'));
+  btn.classList.add('rated');
+  state.abRatings[side]=val;
+  if (state.abRatings.A!==null && state.abRatings.B!==null) showABResult();
+}
+
+function showABResult() {
+  const pair=abPairs[abPairIndex%abPairs.length];
+  const {A,B}=state.abRatings;
+  const res=document.getElementById('abResult'); res.style.display='block';
+  if (A>B) { document.getElementById('abA').classList.add('winner'); document.getElementById('abResultTitle').textContent=pair[0].icon+' '+pair[0].name+' wins!'; document.getElementById('abResultText').textContent='Rated '+A+'/5 vs '+B+'/5'; }
+  else if (B>A) { document.getElementById('abB').classList.add('winner'); document.getElementById('abResultTitle').textContent=pair[1].icon+' '+pair[1].name+' wins!'; document.getElementById('abResultText').textContent='Rated '+B+'/5 vs '+A+'/5'; }
+  else { document.getElementById('abResultTitle').textContent="It's a tie!"; document.getElementById('abResultText').textContent='Both rated '+A+'/5 — both work equally for you.'; }
+  if (!state.stimuliScores[pair[0].name]) state.stimuliScores[pair[0].name]=[];
+  if (!state.stimuliScores[pair[1].name]) state.stimuliScores[pair[1].name]=[];
+  state.stimuliScores[pair[0].name].push(A);
+  state.stimuliScores[pair[1].name].push(B);
+  state.pastTests.push({a:pair[0],b:pair[1],rA:A,rB:B,date:new Date().toLocaleDateString()});
+  saveState(); renderPastTests();
+}
+
+function newABTest() { abPairIndex++; loadABPair(); }
+
+function renderPastTests() {
+  const el=document.getElementById('pastTests');
+  if (!state.pastTests.length) { el.innerHTML='<span style="color:#888">No tests completed yet.</span>'; return; }
+  el.innerHTML=state.pastTests.slice(-5).reverse().map(t=>
+    `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0ebe4;font-size:13px;">
+      <span>${t.a.icon} ${t.a.name} <b style="color:#4a7c59">${t.rA}</b> vs ${t.b.icon} ${t.b.name} <b style="color:#4a7c59">${t.rB}</b></span>
+      <span style="color:#bbb">${t.date}</span></div>`).join('');
+}
+
+function renderHome() {
+  document.getElementById('streakNum').textContent=state.streak||0;
+  document.getElementById('streakSub').textContent=state.streak>0?(state.streak===1?'Great start! Keep it going.':`${state.streak} days strong!`):'Start your first session today!';
+  const sessions=state.sessions||[];
+  const recent=document.getElementById('recentSessions');
+  if (!sessions.length) { recent.innerHTML='<span style="color:#888">No sessions yet.</span>'; return; }
+  recent.innerHTML=sessions.slice(-4).reverse().map(s=>
+    `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0ebe4;font-size:13px;">
+      <span>🌿 ${s.nature}</span><span style="color:#4a7c59;font-weight:600">${['','😟','😐','🙂','😌','😊'][s.rating]||'✓'} ${s.date}</span></div>`).join('');
+}
+
+function renderInsights() {
+  const sessions=state.sessions||[];
+  document.getElementById('totalSessions').textContent=sessions.length;
+  document.getElementById('streakInsight').textContent=state.streak||0;
+  document.getElementById('totalMinutes').textContent=state.totalMinutes||0;
+  if (sessions.length) { const avg=sessions.reduce((a,s)=>a+(s.rating||0),0)/sessions.length; document.getElementById('avgMood').textContent=avg.toFixed(1); }
+  const chart=document.getElementById('moodChart'), labels=document.getElementById('moodChartLabels');
+  const days=[]; for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d);}
+  chart.innerHTML=''; labels.innerHTML='';
+  days.forEach(day=>{
+    const ds=day.toDateString(), ds2=sessions.filter(s=>s.date===ds);
+    const avg=ds2.length?ds2.reduce((a,s)=>a+(s.mood||3),0)/ds2.length:0;
+    const h=avg?Math.round((avg/5)*80):4;
+    const wrap=document.createElement('div'); wrap.className='bar-wrap';
+    const bar=document.createElement('div'); bar.className='bar'; bar.style.height=h+'px';
+    if(!ds2.length) bar.style.background='#e8e0d8';
+    wrap.appendChild(bar); chart.appendChild(wrap);
+    const lbl=document.createElement('div'); lbl.style.cssText='font-size:10px;color:#888;flex:1;text-align:center;';
+    lbl.textContent=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][day.getDay()];
+    labels.appendChild(lbl);
+  });
+  const ts=document.getElementById('topStimuli'), scores=state.stimuliScores||{};
+  const ranked=Object.entries(scores).map(([name,arr])=>({name,avg:arr.reduce((a,b)=>a+b,0)/arr.length})).sort((a,b)=>b.avg-a.avg).slice(0,4);
+  if (!ranked.length){ts.innerHTML='<div style="font-size:13px;color:#888;">Complete sessions to see your top stimuli.</div>';return;}
+  const icons={Ocean:'🌊',Forest:'🌲',Mountain:'⛰️',Rain:'🌧️',Bird:'🐦',Deep:'🎵',Soft:'🎵',Night:'🌙'};
+  ts.innerHTML=ranked.map(r=>{
+    const icon=Object.entries(icons).find(([k])=>r.name.includes(k))?.[1]||'🌿';
+    const pct=Math.round((r.avg/5)*100);
+    return `<div class="ts-item"><div class="ts-icon">${icon}</div><div style="flex:1"><div class="ts-name">${r.name}</div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div></div><div class="ts-score">${r.avg.toFixed(1)}/5</div></div>`;
+  }).join('');
+}
+
+// ── INIT ──
+loadState();
+const todayQ=QUOTES[new Date().getDate()%QUOTES.length];
+document.getElementById('quoteText').textContent='"'+todayQ.text+'"';
+document.getElementById('quoteAuthor').textContent='— '+todayQ.author;
+renderHome(); loadABPair(); renderPastTests(); renderUploadSlots();
+</script>
+</body>
+</html>
